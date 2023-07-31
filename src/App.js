@@ -1,43 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
-import Tasks from './components/Tasks/Tasks';
-import NewTask from './components/NewTask/NewTask';
+import Tasks from "./components/Tasks/Tasks";
+import NewTask from "./components/NewTask/NewTask";
+import useFetch from "./hooks/useFetch";
 
 function App() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [tasks, setTasks] = useState([]);
 
-  const fetchTasks = async (taskText) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        'https://react-http-6b4a6.firebaseio.com/tasks.json'
-      );
+  const { isLoading, error, sendRequest: getRequest } = useFetch();
 
-      if (!response.ok) {
-        throw new Error('Request failed!');
-      }
+  // 응답 받은 데이터 형식(객체 -> 배열) 변환 함수(useFetch에서 applyData로 받게됨)
+  const transformTasks = (taskObj) => {
+    const loadedTasks = [];
 
-      const data = await response.json();
-
-      const loadedTasks = [];
-
-      for (const taskKey in data) {
-        loadedTasks.push({ id: taskKey, text: data[taskKey].text });
-      }
-
-      setTasks(loadedTasks);
-    } catch (err) {
-      setError(err.message || 'Something went wrong!');
+    for (const taskKey in taskObj) {
+      loadedTasks.push({ id: taskKey, text: taskObj[taskKey].text });
     }
-    setIsLoading(false);
+
+    setTasks(loadedTasks);
   };
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    // useEffect안에서 사이드 이펙트로 http함수 설정
+    getRequest(
+      {
+        url: "https://react-custom-hook-practi-8dec7-default-rtdb.firebaseio.com/tasks.json",
+      },
+      transformTasks
+    );
+  }, [getRequest]);
 
   const taskAddHandler = (task) => {
     setTasks((prevTasks) => prevTasks.concat(task));
@@ -50,7 +41,7 @@ function App() {
         items={tasks}
         loading={isLoading}
         error={error}
-        onFetch={fetchTasks}
+        onFetch={getRequest}
       />
     </React.Fragment>
   );
